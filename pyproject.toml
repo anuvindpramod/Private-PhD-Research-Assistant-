@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "private-research-assistant"
+version = "0.1.0"
+description = "A local-first CLI research assistant for evidence-backed AI/ML PhD opportunity discovery."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "chromadb>=1.0.0",
+  "llama-index-core>=0.12.0",
+  "llama-index-llms-ollama>=0.5.0",
+  "llama-index-embeddings-ollama>=0.6.0",
+  "llama-index-vector-stores-chroma>=0.4.0",
+]
+
+[project.scripts]
+pra = "private_research_assistant.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+private_research_assistant = ["fixtures/*.json", "fixtures/*.jsonl"]
+

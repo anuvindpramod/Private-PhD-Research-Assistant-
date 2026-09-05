@@ -1,0 +1,30 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Codex/ChatGPT project-local context, not portfolio source code.
+AGENTS.md
+sources/
+.agents/
+.codex/
+
+# Local notes and application material.
+docs/cv_entry.md
+docs/learning.md
+
+# Live data and local indexes can become large and change every run.
+data/raw/
+data/chroma/
+data/processed/
+data/outputs/
+.firecrawl/
+
+# Local Ollama and model artifacts should not be committed.
+*.gguf
+*.safetensors

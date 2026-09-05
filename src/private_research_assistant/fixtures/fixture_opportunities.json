@@ -1,0 +1,63 @@
+[
+  {
+    "title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "university_or_lab": "University of Bern, Institute of Computer Science",
+    "country": "Switzerland",
+    "deadline": "30 Sep 2026",
+    "funding": "fully funded for four years",
+    "eligibility": "master's degree in computer science, engineering, mathematics, or a related field",
+    "topic_fit": "deep learning, self-supervised learning, generative AI, and world models",
+    "application_url": "https://euraxess.ec.europa.eu/jobs/example-bern-world-models",
+    "evidence_refs": {
+      "title": ["bern-world-models#chunk-1"],
+      "university_or_lab": ["bern-world-models#chunk-1"],
+      "country": ["bern-world-models#chunk-1"],
+      "deadline": ["bern-world-models#chunk-2"],
+      "funding": ["bern-world-models#chunk-2"],
+      "eligibility": ["bern-world-models#chunk-2"],
+      "topic_fit": ["bern-world-models#chunk-3"],
+      "application_url": ["bern-world-models#chunk-3"]
+    }
+  },
+  {
+    "title": "PhD positions in foundation models of human cognition",
+    "university_or_lab": "Max Planck Institute for Biological Cybernetics",
+    "country": "Germany",
+    "deadline": "01/10/26",
+    "funding": "funded doctoral positions",
+    "eligibility": "strong machine learning background and an MSc or equivalent degree",
+    "topic_fit": "foundation models, machine learning, and human cognition",
+    "application_url": "https://ellis.eu/research/jobs/example-human-cognition",
+    "evidence_refs": {
+      "title": ["ellis-human-cognition#chunk-1"],
+      "university_or_lab": ["ellis-human-cognition#chunk-1"],
+      "country": ["ellis-human-cognition#chunk-1"],
+      "deadline": ["ellis-human-cognition#chunk-1"],
+      "funding": ["ellis-human-cognition#chunk-2"],
+      "eligibility": ["ellis-human-cognition#chunk-2"],
+      "topic_fit": ["ellis-human-cognition#chunk-2"],
+      "application_url": ["ellis-human-cognition#chunk-1"]
+    }
+  },
+  {
+    "title": "PhD Studentship: Machine-learning for High-speed Aerial Vehicle Control",
+    "university_or_lab": "University of Bristol",
+    "country": "United Kingdom",
+    "deadline": "04 Nov 2026",
+    "funding": "fully funded, standard EPSRC stipend",
+    "eligibility": "background in control, robotics, aerospace engineering, machine learning, or a related discipline",
+    "topic_fit": "machine-learning for high-speed aerial vehicle control",
+    "application_url": "https://www.jobs.ac.uk/job/example-bristol-flight-control",
+    "evidence_refs": {
+      "title": ["bristol-flight-control#chunk-1"],
+      "university_or_lab": ["bristol-flight-control#chunk-1"],
+      "country": ["bristol-flight-control#chunk-1"],
+      "deadline": ["bristol-flight-control#chunk-1"],
+      "funding": ["bristol-flight-control#chunk-1"],
+      "eligibility": ["bristol-flight-control#chunk-2"],
+      "topic_fit": ["bristol-flight-control#chunk-2"],
+      "application_url": ["bristol-flight-control#chunk-1"]
+    }
+  }
+]
+

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "q01",
+    "question": "What is the title of the Bern opportunity?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "title",
+    "expected_value": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "expected_ref": "bern-world-models#chunk-1",
+    "evidence_must_contain": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models"
+  },
+  {
+    "id": "q02",
+    "question": "Which university or lab hosts the Bern opportunity?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "university_or_lab",
+    "expected_value": "University of Bern, Institute of Computer Science",
+    "expected_ref": "bern-world-models#chunk-1",
+    "evidence_must_contain": "University of Bern, Institute of Computer Science"
+  },
+  {
+    "id": "q03",
+    "question": "Which country is the Bern opportunity in?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "country",
+    "expected_value": "Switzerland",
+    "expected_ref": "bern-world-models#chunk-1",
+    "evidence_must_contain": "Switzerland"
+  },
+  {
+    "id": "q04",
+    "question": "What is the Bern application deadline?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "deadline",
+    "expected_value": "30 Sep 2026",
+    "expected_ref": "bern-world-models#chunk-2",
+    "evidence_must_contain": "Application Deadline: 30 Sep 2026"
+  },
+  {
+    "id": "q05",
+    "question": "What funding is stated for the Bern opportunity?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "funding",
+    "expected_value": "fully funded for four years",
+    "expected_ref": "bern-world-models#chunk-2",
+    "evidence_must_contain": "fully funded for four years"
+  },
+  {
+    "id": "q06",
+    "question": "What eligibility does the Bern opportunity list?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "eligibility",
+    "expected_value": "master's degree in computer science, engineering, mathematics, or a related field",
+    "expected_ref": "bern-world-models#chunk-2",
+    "evidence_must_contain": "master's degree in computer science, engineering, mathematics, or a related field"
+  },
+  {
+    "id": "q07",
+    "question": "Why is the Bern opportunity relevant to AI/ML?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "topic_fit",
+    "expected_value": "deep learning, self-supervised learning, generative AI, and world models",
+    "expected_ref": "bern-world-models#chunk-3",
+    "evidence_must_contain": "deep learning, self-supervised learning, generative AI, and world models"
+  },
+  {
+    "id": "q08",
+    "question": "What is the Bern application URL?",
+    "opportunity_title": "2 PhD and 2 Postdoctoral Positions in Deep Learning and World Models",
+    "field": "application_url",
+    "expected_value": "https://euraxess.ec.europa.eu/jobs/example-bern-world-models",
+    "expected_ref": "bern-world-models#chunk-3",
+    "evidence_must_contain": "https://euraxess.ec.europa.eu/jobs/example-bern-world-models"
+  },
+  {
+    "id": "q09",
+    "question": "What is the Bristol application deadline?",
+    "opportunity_title": "PhD Studentship: Machine-learning for High-speed Aerial Vehicle Control",
+    "field": "deadline",
+    "expected_value": "04 Nov 2026",
+    "expected_ref": "bristol-flight-control#chunk-1",
+    "evidence_must_contain": "Closes 04 Nov 2026"
+  },
+  {
+    "id": "q10",
+    "question": "What eligibility background does the Bristol opportunity mention?",
+    "opportunity_title": "PhD Studentship: Machine-learning for High-speed Aerial Vehicle Control",
+    "field": "eligibility",
+    "expected_value": "background in control, robotics, aerospace engineering, machine learning, or a related discipline",
+    "expected_ref": "bristol-flight-control#chunk-2",
+    "evidence_must_contain": "background in control, robotics, aerospace engineering, machine learning, or a related discipline"
+  }
+]
+
