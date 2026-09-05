@@ -7,8 +7,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-
-# Codex/ChatGPT project-local context, not portfolio source code.
 AGENTS.md
 sources/
 .agents/
@@ -25,6 +23,6 @@ data/processed/
 data/outputs/
 .firecrawl/
 
-# Local Ollama and model artifacts should not be committed.
+# Local Ollama and model artifacts 
 *.gguf
 *.safetensors
