@@ -19,7 +19,7 @@ class FirecrawlClient:
     def __post_init__(self) -> None:
         self.api_key = self.api_key or get_firecrawl_api_key()
         if not self.api_key:
-            raise UserFacingError("Missing FIRECRAWL_API_KEY. Copy .env.example to .env and add your key.")
+            raise UserFacingError("Missing FIRECRAWL_API_KEY. Copy .env.example to .env and add your key (Its free upto a limit, DW ;) ")
 
     def search(
         self,

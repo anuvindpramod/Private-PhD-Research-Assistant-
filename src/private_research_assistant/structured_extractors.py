@@ -12,6 +12,8 @@ from .evidence import clear_unsupported_fields, normalize_excerpt
 AI_TERMS = (
     "agentic",
     "artificial intelligence",
+    "medical data science"
+    "ai in medicine"
     "machine learning",
     "deep learning",
     "reinforcement learning",
@@ -20,6 +22,9 @@ AI_TERMS = (
     "nlp",
     "robotics",
     "trustworthy ai",
+    "explainable ai",
+    "xai",
+    "health ai"
 )
 
 def extract_known_source_opportunities(
@@ -157,7 +162,7 @@ def _is_ai_related(text: str) -> bool:
 
 def _infer_country(location: str | None, institution: str | None) -> str:
     value = f"{location or ''} {institution or ''}".lower()
-    for country in ("denmark", "germany", "sweden", "switzerland", "france", "spain", "netherlands", "norway"):
+    for country in ("denmark", "germany", "sweden", "switzerland", "france", "spain", "netherlands", "norway","italy"):
         if country in value:
             return country.title()
     if "united kingdom" in value:
