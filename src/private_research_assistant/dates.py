@@ -53,6 +53,12 @@ UNKNOWN_VALUES = {"", "unknown", "not specified", "not available", "n/a", "na", 
 
 
 def parse_deadline_text(text: str | None, reference_date: date | None = None) -> date | None:
+    """Convert recognized date text into a date object, without deciding inclusion.
+
+    Returns None for missing/rolling text AND for unparseable/invalid dates.
+    Numeric day/month dates use day-first order. A missing year uses the
+    reference year. is_active_deadline handles the inclusion policy separately.
+    """
     if text is None:
         return None
     reference_date = reference_date or date.today()
@@ -96,6 +102,15 @@ def parse_deadline_text(text: str | None, reference_date: date | None = None) ->
 
 
 def is_active_deadline(deadline: str | None, reference_date: date | None = None) -> bool:
+    """Return whether deadline text passes the extraction deadline filter.
+
+    reference_date is normally the crawl date; omitted means today.
+    Order: recognized closure -> reject; missing/rolling -> accept;
+    otherwise parse a date and accept only date >= reference_date.
+    Missing does not prove open, and this check ignores time of day.
+    Rolling phrases currently win over dates in mixed text unless closure is
+    recognized. This is a known limitation, not a guarantee of current status.
+    """
     reference_date = reference_date or date.today()
     if deadline is None:
         return True
@@ -111,6 +126,7 @@ def is_active_deadline(deadline: str | None, reference_date: date | None = None)
 
 
 def normalize_deadline(deadline: str | None, reference_date: date | None = None) -> str:
+    """Format a recognized date as YYYY-MM-DD; otherwise retain text or unknown."""
     parsed = parse_deadline_text(deadline, reference_date)
     if parsed is not None:
         return parsed.isoformat()

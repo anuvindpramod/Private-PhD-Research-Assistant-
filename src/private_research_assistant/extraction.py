@@ -1,3 +1,12 @@
+"""Turn saved advertisement chunks into a table with source references.
+
+Entry: cli._cmd_extract -> extract_opportunities -> save_opportunities.
+The default path uses source-specific Python rules, not an LLM or vector search.
+An optional LLM fallback handles documents that reach the fallback branch.
+Both paths check evidence before keeping rows. Outputs describe the crawl date,
+not necessarily today's availability.
+"""
+
 from __future__ import annotations
 
 import csv
@@ -20,6 +29,7 @@ from .structured_extractors import extract_known_source_opportunities
 
 @dataclass
 class ExtractionResult:
+    """Return rows, warnings, and written file paths to the CLI for printing."""
     run_id: str
     opportunities: list[Opportunity]
     warnings: list[dict[str, Any]]
@@ -35,6 +45,17 @@ def extract_opportunities(
     output_format: str = "all",
     base_dir: str | Path | None = None,
 ) -> ExtractionResult:
+    """Load saved chunks, extract supported rows, and write the result files.
+
+    Input: an indexed run (latest if omitted) and optional limits/settings.
+    Output: ExtractionResult; the CLI prints its counts and file paths.
+    Side effects: replaces this run's exports and the latest-output JSON.
+
+    For each document, try the known-source parser first. A parser warning
+    skips that document. Returned rows are checked and kept or rejected.
+    Only a document with no parser rows/warnings can reach the LLM fallback,
+    and only when llm_fallback=True. No new pages are crawled or embedded here.
+    """
     index_manifest = load_index_manifest(run_id, base_dir)
     run_id = index_manifest["run_id"]
     chunks = load_chunks(run_id, base_dir)
@@ -48,6 +69,7 @@ def extract_opportunities(
     crawl_date = _crawl_date_from_manifest(index_manifest)
 
     for doc_id, doc_chunks in grouped.items():
+        # The parser can append to this shared list; a new warning blocks fallback.
         warning_count = len(warnings)
         structured_opportunities = extract_known_source_opportunities(doc_id, doc_chunks, crawl_date, warnings)
         if len(warnings) > warning_count:
@@ -68,10 +90,12 @@ def extract_opportunities(
                     )
             continue
 
+        # No supported parser result: the default command skips instead of guessing.
         if llm is None:
             warnings.append({"doc_id": doc_id, "kind": "skipped_no_structured_parser"})
             continue
 
+        # Everything below this point in the loop belongs to optional LLM extraction.
         prompt = _build_extraction_prompt(doc_chunks, crawl_date)
         raw_response = str(llm.complete(prompt))
         try:
@@ -87,6 +111,7 @@ def extract_opportunities(
             if not is_active_deadline(opportunity.deadline, crawl_date):
                 warnings.append({"doc_id": doc_id, "kind": "expired", "title": opportunity.title})
                 continue
+            # This helper changes the row in place: unsupported fields become unknown.
             opportunity = clear_unsupported_fields(opportunity, {c['evidence_id']: c for c in doc_chunks})
             if opportunity.title == "unknown":
                 warnings.append({"doc_id": doc_id, "kind": "unsupported_title"})
@@ -118,6 +143,12 @@ def save_opportunities(
     *,
     crawl_date: str = "unknown",
 ) -> dict[str, str]:
+    """Write rows/warnings to disk and return a label-to-file-path dictionary.
+
+    JSON is always written, even for a CSV-only or Markdown-only request,
+    because inspection/live evaluation read the latest JSON. Existing files
+    at these paths are overwritten; this is not an append-only history.
+    """
     output_directory = output_run_dir(run_id, base_dir)
     output_directory.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -158,6 +189,11 @@ def save_opportunities(
 
 
 def _group_chunks_by_doc(chunks: dict[str, dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Reorganize {chunk_id: chunk} into {doc_id: [chunk, ...]}.
+
+    Each group holds pieces of one original page, preserving their input order.
+    This is grouping by identity, not searching by semantic similarity.
+    """
     grouped: dict[str, list[dict[str, Any]]] = {}
     for chunk in chunks.values():
         grouped.setdefault(chunk["doc_id"], []).append(chunk)
@@ -165,6 +201,14 @@ def _group_chunks_by_doc(chunks: dict[str, dict[str, Any]]) -> dict[str, list[di
 
 
 def _build_extraction_prompt(chunks: list[dict[str, Any]], crawl_date: date) -> str:
+    """Return instructions plus evidence text for the optional LLM request.
+
+    This function builds a string; llm.complete later sends it to the model.
+    Only the first eight chunks and 1800 text characters per chunk are included.
+    These are prompt instructions, not Python guarantees. The dated rule means
+    deadline >= crawl_date; unknown applies separately to missing field values.
+    Missing/rolling deadlines are allowed by policy, not confirmed to be open.
+    """
     context = "\n\n".join(
         f"[{chunk['evidence_id']}]\nTitle: {chunk.get('title', '')}\nURL: {chunk.get('url', '')}\nText: {chunk.get('text', '')[:1800]}"
         for chunk in chunks[:8]
@@ -214,6 +258,11 @@ Evidence chunks:
 
 
 def _parse_json_object(raw: str) -> dict[str, Any]:
+    """Remove common model wrappers and parse the remaining JSON object.
+
+    Parsing checks JSON syntax, not whether fields or claims are correct.
+    Missing braces or malformed JSON raise ValueError (including JSONDecodeError).
+    """
     cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL | re.IGNORECASE).strip()
     cleaned = re.sub(r"^```(?:json)?", "", cleaned).strip()
     cleaned = re.sub(r"```$", "", cleaned).strip()
@@ -225,6 +274,10 @@ def _parse_json_object(raw: str) -> dict[str, Any]:
 
 
 def _dedupe_opportunities(opportunities: list[Opportunity]) -> list[Opportunity]:
+    """Keep the first row per lowercased (title, institution, deadline) tuple.
+
+    Later matches are discarded, not merged; differing funding is not compared.
+    """
     seen: set[tuple[str, str, str]] = set()
     deduped: list[Opportunity] = []
     for opportunity in opportunities:
@@ -245,6 +298,11 @@ def _normalize_local_evidence_refs(
     doc_id: str,
     chunks: dict[str, dict[str, Any]],
 ) -> dict[str, list[str]]:
+    """Expand resolvable short citation IDs and remove repeats within each field.
+
+    Returns a new mapping. References that cannot be resolved are omitted;
+    later evidence validation decides whether the remaining references suffice.
+    """
     normalized: dict[str, list[str]] = {}
     for field_name, refs in evidence_refs.items():
         normalized_refs: list[str] = []
@@ -257,6 +315,11 @@ def _normalize_local_evidence_refs(
 
 
 def _resolve_local_ref(ref: str, doc_id: str, chunks: dict[str, dict[str, Any]]) -> str | None:
+    """Find an existing full ID, or return None if resolution fails.
+
+    Try an exact ID, a document-relative ID (such as chunk-2), then a unique
+    suffix match. Resolving an ID does not establish that it supports a claim.
+    """
     value = str(ref).strip()
     if value in chunks:
         return value
@@ -280,6 +343,10 @@ def _resolve_local_ref(ref: str, doc_id: str, chunks: dict[str, dict[str, Any]])
 
 
 def _crawl_date_from_manifest(index_manifest: dict[str, Any]) -> date:
+    """Read an ISO crawl date; fall back to today if absent or invalid.
+
+    The fallback is a convenience, not recovered historical crawl information.
+    """
     raw = index_manifest.get("crawl_date")
     if isinstance(raw, str):
         try:
@@ -290,6 +357,7 @@ def _crawl_date_from_manifest(index_manifest: dict[str, Any]) -> date:
 
 
 def _to_markdown(opportunities: list[Opportunity]) -> str:
+    """Build table text in memory; save_opportunities is responsible for writing it."""
     headers = [*OPPORTUNITY_FIELDS, "evidence_refs"]
     lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
     for opportunity in opportunities:
@@ -300,4 +368,5 @@ def _to_markdown(opportunities: list[Opportunity]) -> str:
 
 
 def _escape_markdown_cell(value: Any) -> str:
+    """Keep pipes/newlines inside a value from breaking the Markdown table layout."""
     return str(value).replace("|", "\\|").replace("\n", " ")

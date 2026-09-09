@@ -90,6 +90,12 @@ def build_index(run_id: str | None = None, base_dir: str | Path | None = None) -
 
 
 def load_index_manifest(run_id: str | None = None, base_dir: str | Path | None = None) -> dict[str, Any]:
+    """Read the small JSON record describing a saved index, not its vectors.
+
+    Returns settings/counts/paths such as crawl_date and chunks_path.
+    With no run_id, read latest_index.json. Missing files raise UserFacingError.
+    Both extraction and retrieval use this record, but for different purposes.
+    """
     if run_id:
         path = chroma_dir(base_dir) / f"{_collection_name(run_id)}.json"
     else:
@@ -100,6 +106,11 @@ def load_index_manifest(run_id: str | None = None, base_dir: str | Path | None =
 
 
 def load_chunks(run_id: str | None = None, base_dir: str | Path | None = None) -> dict[str, dict[str, Any]]:
+    """Read saved text/metadata into {evidence_id: chunk}; no model is called.
+
+    The manifest identifies the JSONL file (one JSON chunk per nonblank line).
+    Extraction reads these text chunks directly rather than querying Chroma.
+    """
     manifest = load_index_manifest(run_id, base_dir)
     chunks_path = Path(manifest["chunks_path"])
     if not chunks_path.exists():

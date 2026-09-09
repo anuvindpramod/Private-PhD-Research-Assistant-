@@ -162,7 +162,7 @@ def _is_ai_related(text: str) -> bool:
 
 def _infer_country(location: str | None, institution: str | None) -> str:
     value = f"{location or ''} {institution or ''}".lower()
-    for country in ("denmark", "germany", "sweden", "switzerland", "france", "spain", "netherlands", "norway","italy"):
+    for country in ("denmark", "germany", "sweden", "switzerland", "france", "spain", "netherlands", "norway", "italy"):
         if country in value:
             return country.title()
     if "united kingdom" in value:

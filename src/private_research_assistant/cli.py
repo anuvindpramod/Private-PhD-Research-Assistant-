@@ -14,6 +14,12 @@ from .setup_check import run_setup_checks
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Read command arguments, call one handler, and return an exit status.
+
+    None means read the real command line; tests may pass a list of strings.
+    For extraction the call path is main -> _cmd_extract -> extract_opportunities.
+    This dispatcher does not itself crawl, embed, or validate advertisements.
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command is None:
@@ -55,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define accepted commands/options; parsing them does not execute the pipeline."""
     parser = argparse.ArgumentParser(
         prog="pra",
         description="Private Research Assistant for citation-backed AI/ML PhD opportunity discovery.",
@@ -121,6 +128,12 @@ def _cmd_index(args: argparse.Namespace) -> int:
 
 
 def _cmd_extract(args: argparse.Namespace) -> int:
+    """Pass parsed settings to extraction, then print its returned summary.
+
+    args holds settings such as max_documents and llm_fallback. result holds
+    rows, warnings, and file paths after extraction has written its outputs.
+    Exit status 0 means the command completed, not that it found any rows.
+    """
     result = extract_opportunities(
         run_id=args.run_id,
         max_documents=args.max_documents,

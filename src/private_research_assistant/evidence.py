@@ -21,6 +21,12 @@ def is_filled(value: str | None) -> bool:
 
 
 def validate_evidence_refs(opportunity: Opportunity, chunk_map: dict[str, Any]) -> EvidenceValidationResult:
+    """Check each filled field against its cited chunks; return pass/errors.
+
+    Missing fields are skipped. Filled fields need existing reference IDs and
+    at least one matching normalized excerpt (or source/link match for a URL).
+    This does not change the row or prove the source is factually correct.
+    """
     errors: list[str] = []
     for field_name in OPPORTUNITY_FIELDS:
         value = getattr(opportunity, field_name)
@@ -44,11 +50,20 @@ def validate_evidence_refs(opportunity: Opportunity, chunk_map: dict[str, Any]) 
 
 
 def normalize_excerpt(value: str) -> str:
+    """Normalize HTML breaks/entities, whitespace, case, and escaped hyphens.
+
+    This enables textual matching; it does not recognize semantic paraphrases.
+    """
     value = html.unescape(re.sub(r"<br\s*/?>", " ", value, flags=re.I))
     return " ".join(value.replace("\\-", "-").split()).casefold()
 
 
 def clear_unsupported_fields(opportunity: Opportunity, chunks: dict[str, Any]) -> Opportunity:
+    """Check fields individually, replacing unsupported values with unknown.
+
+    Mutates and returns the SAME Opportunity, removing refs for cleared fields.
+    It does not itself drop the row; the caller decides whether to retain it.
+    """
     for name in OPPORTUNITY_FIELDS:
         single = Opportunity(**{name: getattr(opportunity, name)}, evidence_refs={name: opportunity.evidence_refs.get(name, [])})
         if not validate_evidence_refs(single, chunks).passing:
