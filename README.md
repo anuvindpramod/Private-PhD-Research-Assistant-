@@ -53,7 +53,7 @@ Pull the two local models:
 
 ```bash
 ollama pull qwen3:1.7b
-ollama pull nomic-embed-text
+ollama pull qwen3-embedding:0.6b
 ```
 
 Then check readiness:
