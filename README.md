@@ -2,7 +2,7 @@
 
 A CLI research assistant for discovering AI/ML PhD advertisements from curated Europe/UK sources, extracting fields with source references, and answering questions over a local vector index.
 
-Hosted Firecrawl collects public pages. Ollama runs Qwen3 and nomic embeddings locally; LlamaIndex handles chunking and retrieval, and ChromaDB stores the vector index. Python validators check extracted excerpts, deadlines, and answer citation IDs.
+Hosted Firecrawl collects public pages. Ollama runs Qwen3 and qwen3-embedding:0.6b embeddings locally; LlamaIndex handles chunking and retrieval, and ChromaDB stores the vector index. Python validators check extracted excerpts, deadlines, and answer citation IDs.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ flowchart LR
     A[Five curated job sources] --> B[Firecrawl collection]
     B --> C[Raw markdown]
     C --> D[LlamaIndex chunking]
-    D --> E[Ollama nomic embeddings]
+    D --> E[Qwen3-embedding:0.6b]
     E --> F[(ChromaDB)]
     F --> G[Evidence retrieval]
     G --> H[Qwen3 cited answers]
@@ -158,6 +158,7 @@ The first version searches:
 - EURAXESS
 - Academic Positions
 - ELLIS jobs
+-PhD Scanner
 
 Collection is restricted to these configured sources; coverage depends on source availability and page format.
 

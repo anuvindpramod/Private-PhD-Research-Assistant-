@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 
 CHAT_MODEL = "qwen3:1.7b"
-EMBED_MODEL = "nomic-embed-text"
+EMBED_MODEL = "qwen3-embedding:0.6b "
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 CHUNK_SIZE = 800

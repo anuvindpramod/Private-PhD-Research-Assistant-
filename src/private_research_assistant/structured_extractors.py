@@ -12,15 +12,15 @@ from .evidence import clear_unsupported_fields, normalize_excerpt
 AI_TERMS = (
     "agentic",
     "artificial intelligence",
-    "medical data science"
-    "ai in medicine"
+    "medical data science",
+    "ai in medicine",
     "machine learning",
     "deep learning",
     "reinforcement learning",
     "generative",
     "computer vision",
     "nlp",
-    "robotics",
+    "natural language processing",
     "trustworthy ai",
     "explainable ai",
     "xai",

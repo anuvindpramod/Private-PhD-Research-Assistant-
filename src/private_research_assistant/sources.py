@@ -48,6 +48,13 @@ CURATED_SOURCES: tuple[SourceConfig, ...] = (
         include_domains=("ellis.eu", "www.ellis.eu"),
         limit=5,
     ),
+    SourceConfig(
+        source_id="phdscanner",
+        name="PhD Scanner",
+        query="artificial intelligence machine learning PhD Europe",
+        include_domains=("phdscanner.com", "www.phdscanner.com"),
+        limit=8,
+    ),
 )
 
 
