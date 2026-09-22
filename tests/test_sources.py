@@ -6,8 +6,11 @@ from private_research_assistant.sources import CURATED_SOURCES, get_sources
 
 
 class SourceConfigTests(unittest.TestCase):
-    def test_has_five_curated_sources(self) -> None:
-        self.assertEqual(len(CURATED_SOURCES), 5)
+    def test_has_six_curated_sources(self) -> None:
+        self.assertEqual(
+            {source.source_id for source in CURATED_SOURCES},
+            {"jobs_ac_uk", "findaphd", "euraxess", "academic_positions", "ellis_jobs", "phdscanner"},
+        )
 
     def test_source_ids_are_unique(self) -> None:
         ids = [source.source_id for source in CURATED_SOURCES]
@@ -21,4 +24,3 @@ class SourceConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

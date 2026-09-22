@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import importlib
+import os
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import CHAT_MODEL, EMBED_MODEL, MIN_FREE_DISK_GB, MODEL_DISK_GB
-from .env import get_firecrawl_api_key, load_env_file
+from .config import MIN_FREE_DISK_GB, RuntimeConfig, normalized_model_name, runtime_config_from_env
+from .env import get_firecrawl_api_key
 from .paths import project_root
 
 
@@ -21,7 +22,7 @@ class CheckResult:
 
 
 def run_setup_checks(base_dir: str | Path | None = None) -> list[CheckResult]:
-    load_env_file(base_dir)
+    config = runtime_config_from_env(base_dir)
     root = project_root(base_dir)
     results = [
         _check_python(),
@@ -30,7 +31,7 @@ def run_setup_checks(base_dir: str | Path | None = None) -> list[CheckResult]:
         _check_command("ollama", "Ollama CLI is installed."),
         _check_firecrawl_key(base_dir),
     ]
-    ollama_result, model_results = _check_ollama_models()
+    ollama_result, model_results = _check_ollama_models(config)
     results.append(ollama_result)
     results.extend(model_results)
     results.extend(_check_python_dependencies())
@@ -50,12 +51,12 @@ def _check_python() -> CheckResult:
 def _check_disk(root: Path) -> CheckResult:
     usage = shutil.disk_usage(root)
     free_gb = usage.free / (1024**3)
-    needed_gb = sum(MODEL_DISK_GB.values()) + 0.5
     passing = free_gb >= MIN_FREE_DISK_GB
     return CheckResult(
         "Disk space",
         passing,
-        f"{free_gb:.1f} GB free. The two local models need about {needed_gb:.1f} GB before Python deps.",
+        f"{free_gb:.1f} GiB free; minimum working-space check: {MIN_FREE_DISK_GB:.1f} GiB. "
+        "This does not estimate space for missing model downloads.",
     )
 
 
@@ -73,7 +74,10 @@ def _check_firecrawl_key(base_dir: str | Path | None = None) -> CheckResult:
     )
 
 
-def _check_ollama_models() -> tuple[CheckResult, list[CheckResult]]:
+def _check_ollama_models(config: RuntimeConfig) -> tuple[CheckResult, list[CheckResult]]:
+    """Check the same server and exact model names that index/ask will use."""
+    command_env = os.environ.copy()
+    command_env["OLLAMA_HOST"] = config.ollama_base_url
     try:
         completed = subprocess.run(
             ["ollama", "list"],
@@ -81,6 +85,7 @@ def _check_ollama_models() -> tuple[CheckResult, list[CheckResult]]:
             capture_output=True,
             text=True,
             timeout=20,
+            env=command_env,
         )
     except FileNotFoundError:
         return CheckResult("Ollama server", False, "Ollama CLI is missing."), []
@@ -90,18 +95,24 @@ def _check_ollama_models() -> tuple[CheckResult, list[CheckResult]]:
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or "Ollama did not respond."
         return CheckResult("Ollama server", False, detail), [
-            CheckResult(CHAT_MODEL, False, f"Cannot verify. Start Ollama, then run `ollama pull {CHAT_MODEL}`."),
-            CheckResult(EMBED_MODEL, False, f"Cannot verify. Start Ollama, then run `ollama pull {EMBED_MODEL}`."),
+            CheckResult(model, False, f"Cannot verify. Start Ollama, then run `ollama pull {model}`.")
+            for model in (config.chat_model, config.embed_model)
         ]
 
-    output = completed.stdout
+    # Ollama's table has a header; the first column of each following row is NAME.
+    installed_models = {
+        normalized_model_name(line.split()[0])
+        for line in completed.stdout.splitlines()[1:]
+        if line.strip()
+    }
     model_results = []
-    for model in (CHAT_MODEL, EMBED_MODEL):
+    for model in (config.chat_model, config.embed_model):
+        available = normalized_model_name(model) in installed_models
         model_results.append(
             CheckResult(
                 model,
-                model in output,
-                "Model is available locally." if model in output else f"Missing. Run `ollama pull {model}`.",
+                available,
+                "Model is available locally." if available else f"Missing. Run `ollama pull {model}`.",
             )
         )
     return CheckResult("Ollama server", True, "Ollama responded to `ollama list`."), model_results
@@ -124,4 +135,3 @@ def _check_python_dependencies() -> list[CheckResult]:
         else:
             results.append(CheckResult(label, True, "Dependency imports successfully."))
     return results
-

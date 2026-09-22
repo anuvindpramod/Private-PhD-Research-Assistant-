@@ -3,10 +3,17 @@ from __future__ import annotations
 import unittest
 from datetime import date
 
+from private_research_assistant.demo import sample_chunks
 from private_research_assistant.structured_extractors import extract_known_source_opportunities
 
 
 class StructuredExtractorTests(unittest.TestCase):
+    def test_empty_or_unsupported_source_is_still_skipped(self) -> None:
+        self.assertEqual(extract_known_source_opportunities("demo", [], date(2026, 9, 5)), [])
+        chunks = sample_chunks()
+        chunks[0]["source_id"] = "findaphd"
+        self.assertEqual(extract_known_source_opportunities("demo", chunks, date(2026, 9, 5)), [])
+
     def test_extracts_active_jobs_ac_uk_ad(self) -> None:
         chunks = [
             {

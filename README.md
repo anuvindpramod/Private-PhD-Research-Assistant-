@@ -8,7 +8,7 @@ Hosted Firecrawl collects public pages. Ollama runs Qwen3 and qwen3-embedding:0.
 
 ```mermaid
 flowchart LR
-    A[Five curated job sources] --> B[Firecrawl collection]
+    A[Six curated job sources] --> B[Firecrawl collection]
     B --> C[Raw markdown]
     C --> D[LlamaIndex chunking]
     D --> E[Qwen3-embedding:0.6b]
@@ -48,6 +48,17 @@ cp .env.example .env
 ```
 
 Edit `.env` and add your Firecrawl API key.
+
+Model settings follow one order: the process environment overrides `.env`,
+and `.env` overrides defaults in `config.py`. Blank model names are rejected;
+outer spaces are removed. Reading `.env` does not change the process environment.
+`setup-check`, `index`, and `ask` use the same settings. The disk check is a
+minimum free-space check, not a guarantee that new model downloads will fit.
+
+Changing the embedding model requires rebuilding the index before asking questions.
+`pra ask` rejects a different model name rather than comparing incompatible vectors.
+The check tolerates outer spaces and an omitted `:latest` tag; it does not verify
+model file contents. It never rebuilds or deletes data automatically.
 
 Pull the two local models:
 
@@ -99,7 +110,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 ## CLI Commands
 
 - `pra setup-check` checks Python, disk space, Ollama, required models, Firecrawl key, and AI dependencies.
-- `pra crawl` searches the five curated public sources and stores raw markdown locally.
+- `pra crawl` searches the six curated public sources and stores raw markdown locally.
 - `pra index` chunks the raw crawl output and indexes it into ChromaDB with local Ollama embeddings.
 - `pra extract` produces an opportunity table using a structured parser for supported advert pages. The experimental `--llm-fallback` option enables local model extraction for other pages.
 - `pra ask "<question>"` retrieves evidence and answers with chunk/source citations.
@@ -158,7 +169,7 @@ The first version searches:
 - EURAXESS
 - Academic Positions
 - ELLIS jobs
--PhD Scanner
+- PhD Scanner
 
 Collection is restricted to these configured sources; coverage depends on source availability and page format.
 

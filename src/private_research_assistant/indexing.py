@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .config import runtime_config_from_env
+from .config import normalized_model_name, runtime_config_from_env
 from .crawl import load_raw_documents, load_raw_manifest
 from .exceptions import UserFacingError
 from .llm import create_embed_model
@@ -26,8 +26,8 @@ def build_index(run_id: str | None = None, base_dir: str | Path | None = None) -
     from llama_index.vector_stores.chroma import ChromaVectorStore
     import chromadb
 
-    config = runtime_config_from_env()
-    embed_model = create_embed_model()
+    config = runtime_config_from_env(base_dir)
+    embed_model = create_embed_model(config)
     parser = SentenceSplitter(chunk_size=config.chunk_size, chunk_overlap=config.chunk_overlap)
     llama_documents = [
         Document(
@@ -128,12 +128,23 @@ def load_chunks(run_id: str | None = None, base_dir: str | Path | None = None) -
 
 
 def load_vector_index(run_id: str | None = None, base_dir: str | Path | None = None):
+    """Open a saved index only when its embedding model name matches settings."""
+    manifest = load_index_manifest(run_id, base_dir)
+    config = runtime_config_from_env(base_dir)
+    saved_model = manifest.get("embed_model", "")
+    if not isinstance(saved_model, str) or not saved_model.strip():
+        raise UserFacingError("The saved index has no embedding model name. Rebuild it with `pra index`.")
+    if normalized_model_name(saved_model) != normalized_model_name(config.embed_model):
+        raise UserFacingError(
+            f"Index uses {saved_model.strip()}, but PRA_EMBED_MODEL is {config.embed_model}. "
+            "Use the original model in .env or rebuild with `pra index`. No data was changed."
+        )
+
     _require_index_dependencies()
     from llama_index.core import StorageContext, VectorStoreIndex
     from llama_index.vector_stores.chroma import ChromaVectorStore
     import chromadb
 
-    manifest = load_index_manifest(run_id, base_dir)
     chroma_client = chromadb.PersistentClient(path=str(chroma_dir(base_dir)))
     try:
         chroma_collection = chroma_client.get_collection(manifest["collection_name"])
@@ -146,7 +157,7 @@ def load_vector_index(run_id: str | None = None, base_dir: str | Path | None = N
     return VectorStoreIndex.from_vector_store(
         vector_store,
         storage_context=storage_context,
-        embed_model=create_embed_model(),
+        embed_model=create_embed_model(config),
     )
 
 

@@ -33,34 +33,22 @@ def extract_known_source_opportunities(
     crawl_date: date,
     warnings: list[dict[str, Any]] | None = None,
 ) -> list[Opportunity]:
-    if not chunks:
+    """Parse a jobs.ac.uk advert and attach the chunks supporting each field."""
+    if not chunks or str(chunks[0].get("source_id", "")) != "jobs_ac_uk":
         return []
-    source_id = str(chunks[0].get("source_id", ""))
-    if source_id == "jobs_ac_uk":
-        return _extract_jobs_ac_uk_ad(doc_id, chunks, crawl_date, warnings)
-    return []
-
-
-def _extract_jobs_ac_uk_ad(
-    doc_id: str,
-    chunks: list[dict[str, Any]],
-    crawl_date: date,
-    warnings: list[dict[str, Any]] | None = None,
-) -> list[Opportunity]:
     first_chunk = chunks[0]
-    first_text = "\n".join(str(chunk.get("text", "")) for chunk in chunks)
-    first_ref = str(first_chunk.get("evidence_id", f"{doc_id}#chunk-1"))
+    page_text = "\n".join(str(chunk.get("text", "")) for chunk in chunks)
 
-    if "The job you're looking for is no longer being advertised" in first_text:
+    if "The job you're looking for is no longer being advertised" in page_text:
         return []
-    if "| Qualification Type: | PhD |" not in first_text:
+    if "| Qualification Type: | PhD |" not in page_text:
         return []
 
-    title = _first_match(first_text, r"(?m)^#\s+(.+?)\s*$")
-    institution = _first_match(first_text, r"(?m)^###\s+\*\*(.+?)\*\*")
-    location = _table_value(first_text, "Location")
-    funding_amount = _table_value(first_text, "Funding amount")
-    deadline = _table_value(first_text, "Closes") or _table_value(first_text, "Expires")
+    title = _first_match(page_text, r"(?m)^#\s+(.+?)\s*$")
+    institution = _first_match(page_text, r"(?m)^###\s+\*\*(.+?)\*\*")
+    location = _table_value(page_text, "Location")
+    funding = _table_value(page_text, "Funding amount")
+    deadline = _table_value(page_text, "Closes") or _table_value(page_text, "Expires")
     url = str(first_chunk.get("url") or UNKNOWN)
 
     if not title or "PhD" not in title:
@@ -72,8 +60,7 @@ def _extract_jobs_ac_uk_ad(
             warnings.append({"doc_id": doc_id, "kind": "inactive_or_unparseable_deadline", "deadline": deadline})
         return []
 
-    funding = funding_amount or UNKNOWN
-    eligibility, eligibility_ref = _find_sentence(
+    eligibility = _find_sentence(
         chunks,
         (
             "applicants should",
@@ -85,38 +72,35 @@ def _extract_jobs_ac_uk_ad(
             "requirements",
         ),
     )
-    topic_fit, topic_ref = _find_sentence(chunks, AI_TERMS)
-
-    refs: dict[str, list[str]] = {
-        "title": [first_ref],
-        "university_or_lab": [first_ref],
-        "country": [first_ref],
-        "deadline": [first_ref],
-        "funding": [first_ref],
-        "application_url": [first_ref],
-    }
-    if eligibility != UNKNOWN:
-        refs["eligibility"] = [eligibility_ref]
-    if topic_fit != UNKNOWN:
-        refs["topic_fit"] = [topic_ref]
+    topic_fit = _find_sentence(chunks, AI_TERMS)
 
     opportunity = Opportunity(
-            title=_clean(title),
-            university_or_lab=_clean(institution or UNKNOWN),
-            country=_infer_country(location, institution),
-            deadline=_clean(deadline or UNKNOWN),
-            funding=_clean(funding or UNKNOWN),
-            eligibility=_clean(eligibility),
-            topic_fit=_clean(topic_fit),
-            application_url=url,
-            evidence_refs=refs,
-        )
-    for name in refs:
+        title=_clean(title),
+        university_or_lab=_clean(institution or UNKNOWN),
+        country=_infer_country(location, institution),
+        deadline=_clean(deadline or UNKNOWN),
+        funding=_clean(funding or UNKNOWN),
+        eligibility=_clean(eligibility),
+        topic_fit=_clean(topic_fit),
+        application_url=url,
+    )
+    fields = ["title", "university_or_lab", "country", "deadline", "funding", "application_url"]
+    if eligibility != UNKNOWN:
+        fields.append("eligibility")
+    if topic_fit != UNKNOWN:
+        fields.append("topic_fit")
+
+    for name in fields:
         value = getattr(opportunity, name)
-        refs[name] = [str(chunk["evidence_id"]) for chunk in chunks if
-                      (value == chunk.get("url") if name == "application_url" else
-                       normalize_excerpt(value) in normalize_excerpt(str(chunk.get("text", ""))))]
-    opportunity = clear_unsupported_fields(opportunity, {c["evidence_id"]: c for c in chunks})
+        opportunity.evidence_refs[name] = []
+        for chunk in chunks:
+            if name == "application_url":
+                supported = value == chunk.get("url")
+            else:
+                supported = normalize_excerpt(value) in normalize_excerpt(str(chunk.get("text", "")))
+            if supported:
+                opportunity.evidence_refs[name].append(str(chunk["evidence_id"]))
+    clear_unsupported_fields(opportunity, {c["evidence_id"]: c for c in chunks})
     return [opportunity] if opportunity.title != UNKNOWN else []
 
 
@@ -132,7 +116,7 @@ def _first_match(text: str, pattern: str) -> str | None:
     return _clean(match.group(1))
 
 
-def _find_sentence(chunks: list[dict[str, Any]], needles: tuple[str, ...]) -> tuple[str, str]:
+def _find_sentence(chunks: list[dict[str, Any]], needles: tuple[str, ...]) -> str:
     for chunk in chunks:
         text = str(chunk.get("text", ""))
         normalized_text = _clean(text)
@@ -151,8 +135,8 @@ def _find_sentence(chunks: list[dict[str, Any]], needles: tuple[str, ...]) -> tu
                 end = min(end, index + 319)
             sentence = normalized_text[start : end + 1].strip()
             if sentence:
-                return sentence, str(chunk.get("evidence_id", ""))
-    return UNKNOWN, ""
+                return sentence
+    return UNKNOWN
 
 
 def _is_ai_related(text: str) -> bool:
@@ -168,10 +152,6 @@ def _infer_country(location: str | None, institution: str | None) -> str:
     if "united kingdom" in value:
         return "United Kingdom"
     return UNKNOWN
-
-
-def _join_known(values: list[str | None]) -> str:
-    return "; ".join(_clean(value) for value in values if value and _clean(value) != UNKNOWN)
 
 
 def _clean(value: str | None) -> str:

@@ -19,7 +19,6 @@ from typing import Any
 
 from .dates import is_active_deadline
 from .evidence import validate_evidence_refs, clear_unsupported_fields
-from .exceptions import UserFacingError
 from .indexing import load_chunks, load_index_manifest
 from .llm import create_llm
 from .models import OPPORTUNITY_FIELDS, Opportunity
@@ -63,7 +62,7 @@ def extract_opportunities(
     if max_documents:
         grouped = dict(list(grouped.items())[:max_documents])
 
-    llm = create_llm(json_mode=True) if llm_fallback else None
+    llm = create_llm(json_mode=True, base_dir=base_dir) if llm_fallback else None
     opportunities: list[Opportunity] = []
     warnings: list[dict[str, Any]] = []
     crawl_date = _crawl_date_from_manifest(index_manifest)
@@ -264,8 +263,6 @@ def _parse_json_object(raw: str) -> dict[str, Any]:
     Missing braces or malformed JSON raise ValueError (including JSONDecodeError).
     """
     cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL | re.IGNORECASE).strip()
-    cleaned = re.sub(r"^```(?:json)?", "", cleaned).strip()
-    cleaned = re.sub(r"```$", "", cleaned).strip()
     start = cleaned.find("{")
     end = cleaned.rfind("}")
     if start == -1 or end == -1 or end <= start:

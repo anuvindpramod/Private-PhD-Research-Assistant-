@@ -38,7 +38,7 @@ def answer_question(
     retriever = index.as_retriever(similarity_top_k=top_k)
     retrieved = [_to_evidence(item, number) for number, item in enumerate(retriever.retrieve(question), start=1)]
     prompt = _build_answer_prompt(question, retrieved, crawl_date=index_manifest.get("crawl_date"))
-    llm = create_llm(json_mode=False)
+    llm = create_llm(json_mode=False, base_dir=base_dir)
     response = llm.complete(prompt)
     answer = str(response).strip()
     errors = citation_errors(answer, retrieved)
