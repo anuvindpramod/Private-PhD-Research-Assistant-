@@ -5,9 +5,9 @@ from unittest.mock import Mock, patch
 
 from private_research_assistant.cli import main
 from private_research_assistant.demo import sample_chunks
-from private_research_assistant.exceptions import UserFacingError
+from private_research_assistant import UserFacingError
 from private_research_assistant.extraction import extract_opportunities
-from private_research_assistant.firecrawl_client import FirecrawlClient
+from private_research_assistant.crawl import FirecrawlClient
 from private_research_assistant.indexing import _assign_evidence_ids
 from private_research_assistant.retrieval import _to_evidence
 

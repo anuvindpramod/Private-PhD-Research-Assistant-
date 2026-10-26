@@ -4,8 +4,10 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from .env import load_env_file
-from .exceptions import UserFacingError
+from dotenv import load_dotenv
+
+from . import UserFacingError
+from .paths import project_root
 
 
 DEFAULT_TOP_K = 8
@@ -24,10 +26,18 @@ class RuntimeConfig:
     context_window: int = 8192
 
 
+def get_firecrawl_api_key(base_dir: str | Path | None = None) -> str | None:
+    load_dotenv(project_root(base_dir) / ".env", override=False)
+    value = os.environ.get("FIRECRAWL_API_KEY")
+    if value and value.strip() and value.strip() != "fc-YOUR-API-KEY":
+        return value.strip()
+    return None
+
+
 def runtime_config_from_env(base_dir: str | Path | None = None) -> RuntimeConfig:
     """Choose settings: process environment > .env > RuntimeConfig defaults."""
-    settings = load_env_file(base_dir)
-    settings.update(os.environ)
+    load_dotenv(project_root(base_dir) / ".env", override=False)
+    settings = os.environ.copy()
     defaults = RuntimeConfig()
     model_settings = {
         "PRA_CHAT_MODEL": defaults.chat_model,
@@ -52,3 +62,22 @@ def normalized_model_name(name: str) -> str:
     if name and ":" not in name.rsplit("/", 1)[-1]:
         return name + ":latest"
     return name
+
+
+def create_llm(*, json_mode: bool = False, base_dir: str | Path | None = None):
+    from llama_index.llms.ollama import Ollama
+
+    config = runtime_config_from_env(base_dir)
+    return Ollama(
+        model=config.chat_model,
+        base_url=config.ollama_base_url,
+        request_timeout=config.request_timeout_seconds,
+        context_window=config.context_window,
+        json_mode=json_mode,
+    )
+
+
+def create_embed_model(config: RuntimeConfig):
+    from llama_index.embeddings.ollama import OllamaEmbedding
+
+    return OllamaEmbedding(model_name=config.embed_model, base_url=config.ollama_base_url)

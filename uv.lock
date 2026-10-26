@@ -1871,6 +1871,7 @@ dependencies = [
     { name = "llama-index-embeddings-ollama" },
     { name = "llama-index-llms-ollama" },
     { name = "llama-index-vector-stores-chroma" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
@@ -1880,6 +1881,7 @@ requires-dist = [
     { name = "llama-index-embeddings-ollama", specifier = ">=0.6.0" },
     { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },
     { name = "llama-index-vector-stores-chroma", specifier = ">=0.4.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
 [[package]]

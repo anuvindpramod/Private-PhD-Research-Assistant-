@@ -13,7 +13,7 @@ from typing import Any
 from .dates import is_active_deadline
 from .evidence import validate_evidence_refs, clear_unsupported_fields
 from .indexing import load_chunks, load_index_manifest
-from .llm import create_llm
+from .config import create_llm
 from .models import OPPORTUNITY_FIELDS, Opportunity
 from .paths import latest_output_path, output_run_dir
 from .structured_extractors import extract_known_source_opportunities

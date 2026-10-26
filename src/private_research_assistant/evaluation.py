@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .evidence import validate_evidence_refs
-from .exceptions import UserFacingError
+from . import UserFacingError
 from .indexing import load_chunks, load_index_manifest
 from .models import Opportunity
 from .dates import is_active_deadline

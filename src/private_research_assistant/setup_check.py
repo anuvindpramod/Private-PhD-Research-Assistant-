@@ -8,8 +8,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import MIN_FREE_DISK_GB, RuntimeConfig, normalized_model_name, runtime_config_from_env
-from .env import get_firecrawl_api_key
+from .config import MIN_FREE_DISK_GB, RuntimeConfig, get_firecrawl_api_key, normalized_model_name, runtime_config_from_env
 from .paths import project_root
 
 

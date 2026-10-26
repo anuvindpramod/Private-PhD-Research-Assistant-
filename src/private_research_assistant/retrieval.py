@@ -5,9 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import DEFAULT_TOP_K
+from .config import DEFAULT_TOP_K, create_llm
 from .indexing import load_index_manifest, load_vector_index
-from .llm import create_llm
 
 
 @dataclass

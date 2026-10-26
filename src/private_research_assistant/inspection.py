@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .crawl import load_raw_documents, load_raw_manifest
-from .exceptions import UserFacingError
+from . import UserFacingError
 from .indexing import load_chunks, load_index_manifest
 from .paths import latest_index_manifest_path, latest_output_path, latest_raw_manifest_path
 

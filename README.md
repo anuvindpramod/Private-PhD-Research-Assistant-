@@ -34,12 +34,8 @@ Unsupported values become `unknown`. Unsupported page formats are skipped by def
 
 ## Setup
 
-Requires Python 3.12+, uv, and Ollama for the live RAG path. The offline demo
-uses only Python's standard library and needs no API key or model download:
-
-```bash
-PYTHONPATH=src python3 -m private_research_assistant demo
-```
+Requires Python 3.12+, uv, and Ollama for the live RAG path.
+The tests run without an API key or model download after installing dependencies.
 
 ```bash
 uv venv
@@ -51,7 +47,9 @@ Edit `.env` and add your Firecrawl API key.
 
 Model settings follow one order: the process environment overrides `.env`,
 and `.env` overrides defaults in `config.py`. Blank model names are rejected;
-outer spaces are removed. Reading `.env` does not change the process environment.
+outer spaces are removed. `load_dotenv` loads `.env` into the process environment
+without replacing existing values. Restart the command after editing `.env`;
+in a long-running Python session, previously loaded values remain until cleared.
 `setup-check`, `index`, and `ask` use the same settings. The disk check is a
 minimum free-space check, not a guarantee that new model downloads will fit.
 
@@ -80,22 +78,18 @@ uv run pra crawl
 uv run pra index
 uv run pra extract
 uv run pra ask "Which active AI PhD opportunities are fully funded?"
-uv run pra eval
 ```
 
 To extract and validate an existing indexed crawl:
 
 ```bash
-uv run pra status
 uv run pra extract
 uv run pra inspect opportunities
-uv run pra eval --live
 ```
 
 To inspect saved artifacts and retrieved context:
 
 ```bash
-uv run pra status
 uv run pra inspect raw --limit 3
 uv run pra inspect chunks --query "fully funded" --limit 3
 uv run pra ask --show-context "Which active AI PhD opportunities are fully funded?"
@@ -104,7 +98,7 @@ uv run pra ask --show-context "Which active AI PhD opportunities are fully funde
 For a repeatable local test that does not use Firecrawl or Ollama:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests
+uv run python -m unittest discover -s tests
 ```
 
 ## CLI Commands
@@ -114,10 +108,12 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 - `pra index` chunks the raw crawl output and indexes it into ChromaDB with local Ollama embeddings.
 - `pra extract` produces an opportunity table using a structured parser for supported advert pages. The experimental `--llm-fallback` option enables local model extraction for other pages.
 - `pra ask "<question>"` retrieves evidence and answers with chunk/source citations.
-- `pra eval` runs ten saved-answer fixture consistency checks, not a RAG accuracy benchmark. Add `--live` to check textual support in the latest extraction.
-- `pra demo` runs the real parser and validator on synthetic, split-chunk adverts offline.
-- `pra status` shows whether crawl, index, and extraction artifacts exist.
 - `pra inspect raw|chunks|opportunities` displays saved pipeline artifacts.
+
+`eval`, `demo`, and `status` are no longer CLI commands. The test suite includes
+the ten saved-answer fixture checks and synthetic extraction cases. `extract`
+still checks textual support and deadlines before saving results; `inspect`
+lets you read the saved results. These checks are not a RAG accuracy benchmark.
 
 ## Data Flow
 
@@ -126,7 +122,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 3. `pra ask` embeds your question, retrieves similar chunks from ChromaDB, and gives only those chunks to Qwen3.
 4. `pra extract` reads the indexed chunks and fills a structured opportunity table from known page formats, with optional Qwen3 fallback for harder pages.
 5. Extraction retains only values matching normalized text in cited chunks (URLs may match source metadata or links). Other values become `unknown`; rows without a supported title are excluded.
-6. `pra eval` compares saved fixture answers with expected values and references. `--live` additionally checks excerpts and deadlines in the latest extraction.
+6. The test suite compares saved fixture answers with expected values and references, and tests extraction on synthetic adverts.
 
 ## Evaluation Results
 
@@ -195,12 +191,22 @@ Live crawl data, Chroma indexes, model files, credentials, generated outputs, ca
 
 ```text
 src/private_research_assistant/
-  crawl.py                  Collect public source pages
+  cli.py                    Command entry points
+  config.py                 Settings, .env loading, and Ollama model setup
+  sources.py                Source sites and search queries
+  crawl.py                  Firecrawl requests and saved public pages
   indexing.py               Chunk, embed, and store evidence
   retrieval.py              Retrieve chunks and answer with citations
   extraction.py             Produce evidence-backed opportunity rows
   structured_extractors.py  Parse supported advert formats
+  models.py                 Opportunity fields and data conversion
+  evidence.py               Citation and excerpt checks
+  dates.py                  Deadline parsing and filtering
   evaluation.py             Run fixture and live validation
+  inspection.py             Display saved data and pipeline status
+  paths.py                  Local data locations
+  setup_check.py            Check dependencies and local readiness
+  demo.py                   Synthetic offline demonstration
 tests/                       Unit tests for the evidence pipeline
 ```
 

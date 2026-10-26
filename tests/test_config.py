@@ -10,11 +10,11 @@ from unittest.mock import MagicMock, patch
 
 from private_research_assistant.config import (
     RuntimeConfig,
+    get_firecrawl_api_key,
     normalized_model_name,
     runtime_config_from_env,
 )
-from private_research_assistant.env import get_firecrawl_api_key, load_env_file
-from private_research_assistant.exceptions import UserFacingError
+from private_research_assistant import UserFacingError
 from private_research_assistant.indexing import load_vector_index
 from private_research_assistant.setup_check import _check_ollama_models
 
@@ -57,23 +57,26 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(UserFacingError, "PRA_EMBED_MODEL"):
             runtime_config_from_env(self.root)
 
-    def test_file_reads_do_not_change_environment_or_cache_old_values(self):
+    def test_dotenv_preserves_already_loaded_environment_values(self):
         path = self.root / ".env"
         path.write_text("PRA_EMBED_MODEL=first\n")
         self.assertEqual(runtime_config_from_env(self.root).embed_model, "first")
         path.write_text("PRA_EMBED_MODEL=second\n")
+        self.assertEqual(runtime_config_from_env(self.root).embed_model, "first")
+        os.environ.pop("PRA_EMBED_MODEL")
         self.assertEqual(runtime_config_from_env(self.root).embed_model, "second")
-        self.assertNotIn("PRA_EMBED_MODEL", os.environ)
+        self.assertEqual(os.environ["PRA_EMBED_MODEL"], "second")
 
-    def test_simple_env_file_syntax(self):
-        (self.root / ".env").write_text("# comment\n\ninvalid line\n=value\n KEY = 'a=b'\n")
-        self.assertEqual(load_env_file(self.root), {"KEY": "a=b"})
-        self.assertNotIn("KEY", os.environ)
+    def test_dotenv_handles_quotes_comments_and_variable_expansion(self):
+        (self.root / ".env").write_text(
+            '# comment\nPREFIX=fc\nFIRECRAWL_API_KEY="${PREFIX}-test" # inline comment\n'
+        )
+        self.assertEqual(get_firecrawl_api_key(self.root), "fc-test")
 
-    def test_api_key_precedence_without_environment_mutation(self):
+    def test_api_key_loaded_into_environment_and_shell_override_preserved(self):
         (self.root / ".env").write_text("FIRECRAWL_API_KEY=fc-file-test\n")
         self.assertEqual(get_firecrawl_api_key(self.root), "fc-file-test")
-        self.assertNotIn("FIRECRAWL_API_KEY", os.environ)
+        self.assertEqual(os.environ["FIRECRAWL_API_KEY"], "fc-file-test")
         os.environ["FIRECRAWL_API_KEY"] = "fc-shell-test"
         self.assertEqual(get_firecrawl_api_key(self.root), "fc-shell-test")
 
@@ -81,6 +84,7 @@ class ConfigTests(unittest.TestCase):
         self.assertIsNone(get_firecrawl_api_key(self.root))
         for value in ("", "  ", "fc-YOUR-API-KEY"):
             with self.subTest(value=value):
+                os.environ.pop("FIRECRAWL_API_KEY", None)
                 (self.root / ".env").write_text(f"FIRECRAWL_API_KEY={value}\n")
                 self.assertIsNone(get_firecrawl_api_key(self.root))
 

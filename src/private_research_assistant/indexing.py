@@ -5,10 +5,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .config import normalized_model_name, runtime_config_from_env
+from .config import create_embed_model, normalized_model_name, runtime_config_from_env
 from .crawl import load_raw_documents, load_raw_manifest
-from .exceptions import UserFacingError
-from .llm import create_embed_model
+from . import UserFacingError
 from .paths import chroma_dir, ensure_data_dirs, latest_index_manifest_path, processed_run_dir
 
 
