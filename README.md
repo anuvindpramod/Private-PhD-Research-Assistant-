@@ -159,6 +159,20 @@ Example extracted rows:
 - The reliable structured extractor currently targets clean `jobs.ac.uk` advert pages. Other source formats are collected and searchable but often skipped during table extraction.
 - Firecrawl collection requires a hosted API key, although model inference, embeddings, indexing, retrieval, and evaluation run locally.
 - Live advertisements change, so fixture evaluation and live validation are reported separately.
+- Re-indexing the same run replaces its existing collection. A failed rebuild may require another `pra index`; rebuilding is not transactional.
+
+## Development
+
+Run the tests with `uv run python -m unittest discover -s tests -v`.
+Index integration tests use a temporary Chroma database and fake embeddings;
+they check library integration, not semantic retrieval accuracy. They skip when
+the AI dependencies are absent. Tests do not require Firecrawl or Ollama calls.
+
+Unexpected library and programming errors retain their Python tracebacks.
+Expected failures such as missing saved data, network errors, and malformed
+model output have targeted handling. `pra setup-check` reports missing
+dependencies; model creation no longer repeats that check. Extraction requires
+a valid crawl date in its saved manifest instead of substituting today's date.
 
 ## Curated Sources
 

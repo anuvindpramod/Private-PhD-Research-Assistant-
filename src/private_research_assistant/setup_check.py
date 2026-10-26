@@ -18,7 +18,6 @@ class CheckResult:
     name: str
     passing: bool
     detail: str
-    required: bool = True
 
 
 def run_setup_checks(base_dir: str | Path | None = None) -> list[CheckResult]:
@@ -75,7 +74,6 @@ def _check_firecrawl_key(base_dir: str | Path | None = None) -> CheckResult:
 
 
 def _check_ollama_models(config: RuntimeConfig) -> tuple[CheckResult, list[CheckResult]]:
-    """Check the same server and exact model names that index/ask will use."""
     command_env = os.environ.copy()
     command_env["OLLAMA_HOST"] = config.ollama_base_url
     try:
@@ -99,7 +97,6 @@ def _check_ollama_models(config: RuntimeConfig) -> tuple[CheckResult, list[Check
             for model in (config.chat_model, config.embed_model)
         ]
 
-    # Ollama's table has a header; the first column of each following row is NAME.
     installed_models = {
         normalized_model_name(line.split()[0])
         for line in completed.stdout.splitlines()[1:]

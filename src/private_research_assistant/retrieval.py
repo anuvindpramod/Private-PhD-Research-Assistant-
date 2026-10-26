@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-import re
 
 from .config import DEFAULT_TOP_K
 from .indexing import load_index_manifest, load_vector_index
@@ -36,7 +36,7 @@ def answer_question(
     index = load_vector_index(run_id, base_dir)
     index_manifest = load_index_manifest(run_id, base_dir)
     retriever = index.as_retriever(similarity_top_k=top_k)
-    retrieved = [_to_evidence(item, number) for number, item in enumerate(retriever.retrieve(question), start=1)]
+    retrieved = [_to_evidence(item) for item in retriever.retrieve(question)]
     prompt = _build_answer_prompt(question, retrieved, crawl_date=index_manifest.get("crawl_date"))
     llm = create_llm(json_mode=False, base_dir=base_dir)
     response = llm.complete(prompt)
@@ -58,20 +58,16 @@ def citation_errors(answer: str, evidence: list[RetrievedEvidence]) -> list[str]
     return errors
 
 
-def _to_evidence(node_with_score: Any, number: int) -> RetrievedEvidence:
-    node = getattr(node_with_score, "node", node_with_score)
-    metadata = dict(getattr(node, "metadata", {}) or {})
-    try:
-        text = node.get_content(metadata_mode="none")
-    except Exception:
-        text = getattr(node, "text", "")
-    score = getattr(node_with_score, "score", None)
+def _to_evidence(node_with_score: Any) -> RetrievedEvidence:
+    node = node_with_score.node
+    metadata = node.metadata
+    text = node.get_content(metadata_mode="none")
     return RetrievedEvidence(
-        evidence_id=metadata.get("evidence_id") or getattr(node, "node_id", f"E{number}"),
+        evidence_id=metadata["evidence_id"],
         title=metadata.get("title", ""),
         url=metadata.get("url", ""),
         text=" ".join(str(text).split()),
-        score=score,
+        score=node_with_score.score,
     )
 
 

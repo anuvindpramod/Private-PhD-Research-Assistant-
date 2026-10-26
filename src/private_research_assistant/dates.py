@@ -7,28 +7,40 @@ from datetime import date
 MONTHS = {
     "jan": 1,
     "january": 1,
+    "January": 1,
     "feb": 2,
     "february": 2,
+    "February": 2,
     "mar": 3,
     "march": 3,
+    "March": 3,
     "apr": 4,
     "april": 4,
+    "April": 4,
+    "May": 5,
     "may": 5,
     "jun": 6,
     "june": 6,
+    "June": 6,
     "jul": 7,
     "july": 7,
+    "July": 7,
     "aug": 8,
     "august": 8,
+    "August": 8,
     "sep": 9,
     "sept": 9,
     "september": 9,
+    "September": 9,
     "oct": 10,
     "october": 10,
+    "October": 10,
     "nov": 11,
     "november": 11,
+    "November": 11,
     "dec": 12,
     "december": 12,
+    "December": 12,
 }
 
 ROLLING_PHRASES = (
@@ -51,14 +63,16 @@ EXPIRED_PHRASES = (
 
 UNKNOWN_VALUES = {"", "unknown", "not specified", "not available", "n/a", "na", "none"}
 
-
-def parse_deadline_text(text: str | None, reference_date: date | None = None) -> date | None:
-    """Convert recognized date text into a date object, without deciding inclusion.
+def normalize_deadline_text(text: str | None) -> str | None:
+    """Normalize recognized date text for comparison, without deciding inclusion.
 
     Returns None for missing/rolling text AND for unparseable/invalid dates.
-    Numeric day/month dates use day-first order. A missing year uses the
-    reference year. is_active_deadline handles the inclusion policy separately.
     """
+
+
+
+def parse_deadline_text(text: str | None, reference_date: date | None = None) -> date | None:
+    """Parse day-first dates, using the reference year when no year is stated."""
     if text is None:
         return None
     reference_date = reference_date or date.today()
@@ -102,15 +116,7 @@ def parse_deadline_text(text: str | None, reference_date: date | None = None) ->
 
 
 def is_active_deadline(deadline: str | None, reference_date: date | None = None) -> bool:
-    """Return whether deadline text passes the extraction deadline filter.
-
-    reference_date is normally the crawl date; omitted means today.
-    Order: recognized closure -> reject; missing/rolling -> accept;
-    otherwise parse a date and accept only date >= reference_date.
-    Missing does not prove open, and this check ignores time of day.
-    Rolling phrases currently win over dates in mixed text unless closure is
-    recognized. This is a known limitation, not a guarantee of current status.
-    """
+    """Reject closure/expired dates; allow missing or rolling deadlines by policy."""
     reference_date = reference_date or date.today()
     if deadline is None:
         return True

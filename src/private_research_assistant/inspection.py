@@ -7,26 +7,24 @@ from typing import Any
 from .crawl import load_raw_documents, load_raw_manifest
 from .exceptions import UserFacingError
 from .indexing import load_chunks, load_index_manifest
-from .paths import latest_output_path
+from .paths import latest_index_manifest_path, latest_output_path, latest_raw_manifest_path
 
 
 def inspect_status(base_dir: str | Path | None = None) -> str:
     lines = ["Private Research Assistant status"]
-    try:
-        raw_manifest = load_raw_manifest(base_dir=base_dir)
-    except (FileNotFoundError, UserFacingError):
+    if not latest_raw_manifest_path(base_dir).exists():
         lines.append("- Crawl: not found. Run `pra crawl`.")
     else:
+        raw_manifest = load_raw_manifest(base_dir=base_dir)
         lines.append(
             f"- Crawl: run {raw_manifest['run_id']}, "
             f"{raw_manifest['document_count']} documents, crawl date {raw_manifest.get('crawl_date', 'unknown')}."
         )
 
-    try:
-        index_manifest = load_index_manifest(base_dir=base_dir)
-    except UserFacingError:
+    if not latest_index_manifest_path(base_dir).exists():
         lines.append("- Index: not found. Run `pra index`.")
     else:
+        index_manifest = load_index_manifest(base_dir=base_dir)
         lines.append(
             f"- Index: {index_manifest['chunk_count']} chunks in collection "
             f"{index_manifest['collection_name']}."

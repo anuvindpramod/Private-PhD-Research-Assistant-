@@ -6,18 +6,16 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
-from .env import get_firecrawl_api_key
 from .exceptions import UserFacingError
 
 
 @dataclass
 class FirecrawlClient:
-    api_key: str | None = None
+    api_key: str | None
     api_url: str = "https://api.firecrawl.dev"
     timeout_seconds: int = 90
 
     def __post_init__(self) -> None:
-        self.api_key = self.api_key or get_firecrawl_api_key()
         if not self.api_key:
             raise UserFacingError("Missing FIRECRAWL_API_KEY. Copy .env.example to .env and add your key (Its free upto a limit, DW ;) ")
 
@@ -27,7 +25,6 @@ class FirecrawlClient:
         *,
         limit: int,
         include_domains: tuple[str, ...] = (),
-        scrape: bool = True,
     ) -> list[dict[str, Any]]:
         payload: dict[str, Any] = {
             "query": query,
@@ -35,11 +32,10 @@ class FirecrawlClient:
             "sources": ["web"],
             "ignoreInvalidURLs": True,
             "timeout": self.timeout_seconds * 1000,
+            "scrapeOptions": {"formats": ["markdown"]},
         }
         if include_domains:
             payload["includeDomains"] = list(include_domains)
-        if scrape:
-            payload["scrapeOptions"] = {"formats": ["markdown"]}
 
         response = self._post("/v2/search", payload)
         data = response.get("data", response)
@@ -48,15 +44,10 @@ class FirecrawlClient:
         elif isinstance(data, list):
             web = data
         else:
-            web = []
+            raise UserFacingError("Firecrawl returned an unexpected search response.")
+        if not isinstance(web, list):
+            raise UserFacingError("Firecrawl search results must be a list.")
         return [item for item in web if isinstance(item, dict)]
-
-    def scrape(self, url: str) -> dict[str, Any]:
-        response = self._post("/v2/scrape", {"url": url, "formats": ["markdown"]})
-        data = response.get("data", response)
-        if not isinstance(data, dict):
-            raise UserFacingError(f"Firecrawl returned an unexpected scrape response for {url}")
-        return data
 
     def _post(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
@@ -79,10 +70,7 @@ class FirecrawlClient:
         except urllib.error.URLError as exc:
             raise UserFacingError(f"Could not reach Firecrawl: {exc.reason}") from exc
 
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise UserFacingError(f"Firecrawl returned non-JSON content: {raw[:200]}") from exc
+        parsed = json.loads(raw)
         if isinstance(parsed, dict) and parsed.get("success") is False:
             raise UserFacingError(f"Firecrawl request failed: {parsed}")
         if not isinstance(parsed, dict):

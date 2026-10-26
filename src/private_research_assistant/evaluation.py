@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from .evidence import validate_evidence_refs
 from .exceptions import UserFacingError
-from .indexing import load_chunks
+from .indexing import load_chunks, load_index_manifest
 from .models import Opportunity
 from .dates import is_active_deadline
-from datetime import date
-from .indexing import load_index_manifest
 from .paths import latest_output_path
 
 
@@ -35,7 +34,7 @@ class EvalRunResult:
     @property
     def passing(self) -> bool:
         fixture_ok = all(result.passing for result in self.fixture_results)
-        live_ok = True if self.live_passing is None else self.live_passing
+        live_ok = self.live_passing is not False
         return fixture_ok and live_ok
 
 
@@ -90,10 +89,10 @@ def _run_live_evaluation(base_dir: str | Path | None = None) -> tuple[bool, str]
         return False, "Live output has no opportunities."
     try:
         chunks = load_chunks(payload.get("run_id"), base_dir)
-    except UserFacingError as exc:
+        manifest = load_index_manifest(payload.get("run_id"), base_dir)
+    except (UserFacingError, FileNotFoundError) as exc:
         return False, str(exc)
     errors: list[str] = []
-    manifest = load_index_manifest(payload.get("run_id"), base_dir)
     crawl_date = date.fromisoformat(manifest["crawl_date"])
     for opportunity in opportunities:
         validation = validate_evidence_refs(opportunity, chunks)

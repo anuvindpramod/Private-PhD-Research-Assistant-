@@ -13,7 +13,6 @@ from .paths import chroma_dir, ensure_data_dirs, latest_index_manifest_path, pro
 
 
 def build_index(run_id: str | None = None, base_dir: str | Path | None = None) -> dict[str, Any]:
-    _require_index_dependencies()
     ensure_data_dirs(base_dir)
     manifest = load_raw_manifest(run_id, base_dir)
     run_id = manifest["run_id"]
@@ -58,7 +57,7 @@ def build_index(run_id: str | None = None, base_dir: str | Path | None = None) -
     chroma_client = chromadb.PersistentClient(path=str(chroma_dir(base_dir)))
     try:
         chroma_client.delete_collection(collection_name)
-    except Exception:
+    except chromadb.errors.NotFoundError:
         pass
     chroma_collection = chroma_client.get_or_create_collection(collection_name)
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
@@ -90,12 +89,7 @@ def build_index(run_id: str | None = None, base_dir: str | Path | None = None) -
 
 
 def load_index_manifest(run_id: str | None = None, base_dir: str | Path | None = None) -> dict[str, Any]:
-    """Read the small JSON record describing a saved index, not its vectors.
-
-    Returns settings/counts/paths such as crawl_date and chunks_path.
-    With no run_id, read latest_index.json. Missing files raise UserFacingError.
-    Both extraction and retrieval use this record, but for different purposes.
-    """
+    """Read a run's index metadata, or the latest run when no ID is given."""
     if run_id:
         path = chroma_dir(base_dir) / f"{_collection_name(run_id)}.json"
     else:
@@ -106,11 +100,7 @@ def load_index_manifest(run_id: str | None = None, base_dir: str | Path | None =
 
 
 def load_chunks(run_id: str | None = None, base_dir: str | Path | None = None) -> dict[str, dict[str, Any]]:
-    """Read saved text/metadata into {evidence_id: chunk}; no model is called.
-
-    The manifest identifies the JSONL file (one JSON chunk per nonblank line).
-    Extraction reads these text chunks directly rather than querying Chroma.
-    """
+    """Read saved text as {evidence_id: chunk}, without calling a model."""
     manifest = load_index_manifest(run_id, base_dir)
     chunks_path = Path(manifest["chunks_path"])
     if not chunks_path.exists():
@@ -140,18 +130,12 @@ def load_vector_index(run_id: str | None = None, base_dir: str | Path | None = N
             "Use the original model in .env or rebuild with `pra index`. No data was changed."
         )
 
-    _require_index_dependencies()
     from llama_index.core import StorageContext, VectorStoreIndex
     from llama_index.vector_stores.chroma import ChromaVectorStore
     import chromadb
 
     chroma_client = chromadb.PersistentClient(path=str(chroma_dir(base_dir)))
-    try:
-        chroma_collection = chroma_client.get_collection(manifest["collection_name"])
-    except Exception as exc:
-        raise UserFacingError(
-            f"Chroma collection {manifest['collection_name']} was not found. Run `pra index` again."
-        ) from exc
+    chroma_collection = chroma_client.get_collection(manifest["collection_name"])
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_vector_store(
@@ -165,14 +149,13 @@ def _assign_evidence_ids(nodes: list[Any]) -> list[dict[str, Any]]:
     counters: dict[str, int] = {}
     chunks: list[dict[str, Any]] = []
     for node in nodes:
-        metadata = dict(getattr(node, "metadata", {}) or {})
-        doc_id = metadata.get("doc_id") or "document"
+        metadata = dict(node.metadata)
+        doc_id = metadata["doc_id"]
         counters[doc_id] = counters.get(doc_id, 0) + 1
         evidence_id = f"{doc_id}#chunk-{counters[doc_id]}"
         node.id_ = evidence_id
         metadata["evidence_id"] = evidence_id
         node.metadata = metadata
-        text = _node_text(node)
         chunks.append(
             {
                 "evidence_id": evidence_id,
@@ -181,38 +164,12 @@ def _assign_evidence_ids(nodes: list[Any]) -> list[dict[str, Any]]:
                 "source_name": metadata.get("source_name", ""),
                 "title": metadata.get("title", ""),
                 "url": metadata.get("url", ""),
-                "text": text,
+                "text": node.get_content(metadata_mode="none"),
             }
         )
     return chunks
 
 
-def _node_text(node: Any) -> str:
-    try:
-        return node.get_content(metadata_mode="none")
-    except Exception:
-        return getattr(node, "text", "")
-
-
 def _collection_name(run_id: str) -> str:
     clean = re.sub(r"[^A-Za-z0-9_]", "_", run_id)
     return f"phd_ads_{clean}"
-
-
-def _require_index_dependencies() -> None:
-    missing: list[str] = []
-    for module_name in (
-        "chromadb",
-        "llama_index.core",
-        "llama_index.llms.ollama",
-        "llama_index.embeddings.ollama",
-        "llama_index.vector_stores.chroma",
-    ):
-        try:
-            __import__(module_name)
-        except ImportError:
-            missing.append(module_name)
-    if missing:
-        raise UserFacingError(
-            "Missing AI dependencies. Run `uv sync` first. Missing modules: " + ", ".join(missing)
-        )

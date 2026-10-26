@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .firecrawl_client import FirecrawlClient
+from .env import get_firecrawl_api_key
 from .paths import ensure_data_dirs, latest_raw_manifest_path, raw_run_dir
 from .sources import SourceConfig, get_sources
 
@@ -25,7 +26,7 @@ def crawl_sources(
     ensure_data_dirs(base_dir)
     run_id = run_id or make_run_id()
     sources = get_sources(selected_source_ids)
-    client = FirecrawlClient()
+    client = FirecrawlClient(api_key=get_firecrawl_api_key(base_dir))
     run_directory = raw_run_dir(run_id, base_dir)
     run_directory.mkdir(parents=True, exist_ok=True)
 
@@ -38,7 +39,6 @@ def crawl_sources(
             source.query,
             limit=limit,
             include_domains=source.include_domains,
-            scrape=True,
         )
         normalized_docs = [_normalize_search_result(source, item, index) for index, item in enumerate(results, start=1)]
         normalized_docs = [doc for doc in normalized_docs if doc["url"] and doc["markdown"]]
@@ -68,8 +68,9 @@ def crawl_sources(
         "documents_path": str(documents_path),
     }
     manifest_path = run_directory / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    latest_raw_manifest_path(base_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    manifest_text = json.dumps(manifest, indent=2)
+    manifest_path.write_text(manifest_text, encoding="utf-8")
+    latest_raw_manifest_path(base_dir).write_text(manifest_text, encoding="utf-8")
     return manifest
 
 

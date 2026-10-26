@@ -2,10 +2,11 @@
 
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from private_research_assistant.config import (
     RuntimeConfig,
@@ -132,27 +133,49 @@ class SetupModelTests(unittest.TestCase):
 
 
 class IndexModelGuardTests(unittest.TestCase):
+    def setUp(self):
+        self.chroma = MagicMock()
+        self.core = MagicMock()
+        modules = patch.dict(sys.modules, {
+            "chromadb": self.chroma,
+            "llama_index.core": self.core,
+            "llama_index.vector_stores.chroma": MagicMock(),
+        })
+        modules.start()
+        self.addCleanup(modules.stop)
+
     def test_different_or_missing_embedding_name_stops_before_database_access(self):
         for saved_model in ("nomic-embed-text", "", None):
             with self.subTest(saved_model=saved_model):
                 with patch("private_research_assistant.indexing.load_index_manifest",
                            return_value={"embed_model": saved_model}), \
-                     patch("private_research_assistant.indexing.runtime_config_from_env", return_value=RuntimeConfig()), \
-                     patch("private_research_assistant.indexing._require_index_dependencies") as dependencies:
+                     patch("private_research_assistant.indexing.runtime_config_from_env", return_value=RuntimeConfig()):
                     with self.assertRaises(UserFacingError):
                         load_vector_index()
-                    dependencies.assert_not_called()
+                    self.chroma.PersistentClient.assert_not_called()
 
     def test_spaces_and_latest_alias_pass_the_guard(self):
         for saved, configured in (("qwen3-embedding:0.6b ", "qwen3-embedding:0.6b"),
                                   ("embed:latest", "embed")):
             with self.subTest(saved=saved):
-                # Stop after the guard so this unit test never opens a real database.
-                with patch("private_research_assistant.indexing.load_index_manifest", return_value={"embed_model": saved}), \
+                with patch("private_research_assistant.indexing.load_index_manifest", return_value={
+                         "embed_model": saved, "collection_name": "test_collection",
+                     }), \
                      patch("private_research_assistant.indexing.runtime_config_from_env",
                            return_value=RuntimeConfig(embed_model=configured)) as settings, \
-                     patch("private_research_assistant.indexing._require_index_dependencies",
-                           side_effect=RuntimeError("guard passed")):
-                    with self.assertRaisesRegex(RuntimeError, "guard passed"):
-                        load_vector_index(base_dir="selected-project")
+                     patch("private_research_assistant.indexing.create_embed_model"), \
+                     patch("private_research_assistant.indexing.chroma_dir", return_value="unused"):
+                    load_vector_index(base_dir="selected-project")
                     settings.assert_called_once_with("selected-project")
+                    self.core.VectorStoreIndex.from_vector_store.assert_called()
+
+    def test_database_failure_is_not_relabelled_as_missing_collection(self):
+        self.chroma.PersistentClient.return_value.get_collection.side_effect = RuntimeError("database damaged")
+        with (
+            patch("private_research_assistant.indexing.load_index_manifest", return_value={
+                "embed_model": "qwen3-embedding:0.6b", "collection_name": "test_collection",
+            }),
+            patch("private_research_assistant.indexing.runtime_config_from_env", return_value=RuntimeConfig()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "database damaged"):
+                load_vector_index()

@@ -2,11 +2,34 @@ from __future__ import annotations
 
 import unittest
 
-from private_research_assistant.evidence import collect_cited_refs, validate_evidence_refs
+from private_research_assistant.evidence import clear_unsupported_fields, collect_cited_refs, validate_evidence_refs
 from private_research_assistant.models import Opportunity
 
 
 class EvidenceValidationTests(unittest.TestCase):
+    def test_clearing_only_changes_unsupported_fields(self) -> None:
+        row = Opportunity(title="A PhD", funding="Full funding",
+                          evidence_refs={"title": ["c1"], "funding": ["c2"]})
+        chunks = {"c1": {"text": "A PhD"}, "c2": {"text": "Funding is not stated."}}
+        result = clear_unsupported_fields(row, chunks)
+        self.assertIs(result, row)
+        self.assertEqual(row.title, "A PhD")
+        self.assertEqual(row.funding, "unknown")
+        self.assertEqual(row.evidence_refs, {"title": ["c1"]})
+        self.assertTrue(validate_evidence_refs(row, chunks).passing)
+
+    def test_one_valid_ref_does_not_hide_another_missing_ref(self) -> None:
+        row = Opportunity(title="A PhD", evidence_refs={"title": ["c1", "missing"]})
+        chunks = {"c1": {"text": "A PhD"}}
+        self.assertEqual(validate_evidence_refs(row, chunks).errors,
+                         ["title cites missing evidence chunk missing"])
+        self.assertEqual(clear_unsupported_fields(row, chunks).title, "unknown")
+
+    def test_any_matching_cited_chunk_is_enough(self) -> None:
+        row = Opportunity(title="A PhD", evidence_refs={"title": ["c1", "c2"]})
+        chunks = {"c1": {"text": "Unrelated text"}, "c2": {"text": "A PhD"}}
+        self.assertTrue(validate_evidence_refs(row, chunks).passing)
+
     def test_requires_evidence_for_filled_fields(self) -> None:
         opportunity = Opportunity(title="A PhD", university_or_lab="A Lab", evidence_refs={"title": ["c1"]})
         result = validate_evidence_refs(opportunity, {"c1": {"text": "A PhD"}})

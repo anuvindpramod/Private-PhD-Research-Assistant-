@@ -4,6 +4,7 @@ import argparse
 import sys
 
 from .crawl import crawl_sources
+from .config import DEFAULT_TOP_K
 from .evaluation import run_evaluation
 from .exceptions import UserFacingError
 from .extraction import extract_opportunities
@@ -14,12 +15,6 @@ from .setup_check import run_setup_checks
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Read command arguments, call one handler, and return an exit status.
-
-    None means read the real command line; tests may pass a list of strings.
-    For extraction the call path is main -> _cmd_extract -> extract_opportunities.
-    This dispatcher does not itself crawl, embed, or validate advertisements.
-    """
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command is None:
@@ -46,10 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "demo":
             from .demo import run_demo
             return run_demo()
-    except UserFacingError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-    except FileNotFoundError as exc:
+    except (UserFacingError, FileNotFoundError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
@@ -61,7 +53,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Define accepted commands/options; parsing them does not execute the pipeline."""
     parser = argparse.ArgumentParser(
         prog="pra",
         description="Private Research Assistant for citation-backed AI/ML PhD opportunity discovery.",
@@ -89,11 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
     ask_parser = subparsers.add_parser("ask", help="Ask a cited question over indexed evidence.")
     ask_parser.add_argument("question", nargs="+")
     ask_parser.add_argument("--run-id", help="Indexed run id to query. Defaults to latest.")
-    ask_parser.add_argument("--top-k", type=int, default=8)
+    ask_parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     ask_parser.add_argument("--show-context", action="store_true", help="Print retrieved evidence text snippets.")
 
-    eval_parser = subparsers.add_parser("eval", help="Run the ten-question evidence evaluation.")
-    eval_parser.add_argument("--live", action="store_true", help="Also validate latest live extraction output.")
+    eval_parser = subparsers.add_parser("eval", help="Check the ten saved-answer fixtures.")
+    eval_parser.add_argument("--live", action="store_true", help="Also validate the latest saved extraction.")
 
     inspect_parser = subparsers.add_parser("inspect", help="Peek inside saved pipeline artifacts.")
     inspect_parser.add_argument("stage", choices=("raw", "chunks", "opportunities"))
@@ -106,11 +97,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _cmd_setup_check(_: argparse.Namespace) -> int:
     results = run_setup_checks()
-    required_failures = [result for result in results if result.required and not result.passing]
     for result in results:
-        status = "OK" if result.passing else ("FAIL" if result.required else "WARN")
+        status = "OK" if result.passing else "FAIL"
         print(f"{status:4} {result.name}: {result.detail}")
-    return 1 if required_failures else 0
+    return 0 if all(result.passing for result in results) else 1
 
 
 def _cmd_crawl(args: argparse.Namespace) -> int:
@@ -128,12 +118,6 @@ def _cmd_index(args: argparse.Namespace) -> int:
 
 
 def _cmd_extract(args: argparse.Namespace) -> int:
-    """Pass parsed settings to extraction, then print its returned summary.
-
-    args holds settings such as max_documents and llm_fallback. result holds
-    rows, warnings, and file paths after extraction has written its outputs.
-    Exit status 0 means the command completed, not that it found any rows.
-    """
     result = extract_opportunities(
         run_id=args.run_id,
         max_documents=args.max_documents,

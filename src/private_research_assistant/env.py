@@ -7,11 +7,7 @@ from .paths import project_root
 
 
 def load_env_file(base_dir: str | Path | None = None) -> dict[str, str]:
-    """Read simple KEY=value settings from .env without changing os.environ.
-
-    Blank lines and comment lines are ignored; surrounding quotes are removed.
-    This is not a shell parser: variable expansion and inline comments are not supported.
-    """
+    """Read literal KEY=value settings; no shell expansion or environment changes."""
     env_path = project_root(base_dir) / ".env"
     loaded: dict[str, str] = {}
     if not env_path.exists():

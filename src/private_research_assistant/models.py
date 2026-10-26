@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections.abc import Iterable
 from typing import Any
 
 
@@ -84,11 +85,10 @@ def _normalize_ref_list(value: Any) -> list[str]:
         return []
     if isinstance(value, str):
         candidates = [value]
+    elif isinstance(value, Iterable):
+        candidates = value
     else:
-        try:
-            candidates = list(value)
-        except TypeError:
-            candidates = [value]
+        candidates = [value]
     refs = []
     for candidate in candidates:
         ref = str(candidate).strip()
