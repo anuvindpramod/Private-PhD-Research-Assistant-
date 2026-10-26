@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from datetime import date
 
-from private_research_assistant.demo import sample_chunks, run_demo
+from private_research_assistant.demo import sample_chunks
 from private_research_assistant.dates import is_active_deadline
 from private_research_assistant.evidence import validate_evidence_refs, clear_unsupported_fields
 from private_research_assistant.models import Opportunity

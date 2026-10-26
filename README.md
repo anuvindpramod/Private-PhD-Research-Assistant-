@@ -129,7 +129,7 @@ lets you read the saved results. These checks are not a RAG accuracy benchmark.
 The saved crawl dated 2026-09-04 contains 37 documents and 375 evidence chunks.
 Re-extraction on 2026-09-05 returned 2 opportunities with matching source excerpts,
 active as of the crawl date. All 28 unit tests and 10/10 saved-answer fixture
-consistency checks passed. The synthetic offline demo executes the actual parser
+consistency checks passed. Synthetic extraction tests execute the actual parser
 and validator. These results do not measure overall RAG answer accuracy.
 
 A local smoke check on 2026-09-05 retrieved the Newcastle advert as the top
@@ -154,7 +154,7 @@ Example extracted rows:
 - Shortened context and small local models can miss relevant evidence. Optional LLM extraction remains experimental.
 - The reliable structured extractor currently targets clean `jobs.ac.uk` advert pages. Other source formats are collected and searchable but often skipped during table extraction.
 - Firecrawl collection requires a hosted API key, although model inference, embeddings, indexing, retrieval, and evaluation run locally.
-- Live advertisements change, so fixture evaluation and live validation are reported separately.
+- Saved-answer fixture checks do not establish the accuracy or freshness of live advertisements.
 - Re-indexing the same run replaces its existing collection. A failed rebuild may require another `pra index`; rebuilding is not transactional.
 
 ## Development
@@ -202,12 +202,12 @@ src/private_research_assistant/
   models.py                 Opportunity fields and data conversion
   evidence.py               Citation and excerpt checks
   dates.py                  Deadline parsing and filtering
-  evaluation.py             Run fixture and live validation
-  inspection.py             Display saved data and pipeline status
+  inspection.py             Display saved data
   paths.py                  Local data locations
   setup_check.py            Check dependencies and local readiness
-  demo.py                   Synthetic offline demonstration
+  demo.py                   Shared synthetic advert chunks for tests
 tests/                       Unit tests for the evidence pipeline
+  test_evaluation.py        Ten saved-answer fixture consistency checks
 ```
 
 ## Future Work

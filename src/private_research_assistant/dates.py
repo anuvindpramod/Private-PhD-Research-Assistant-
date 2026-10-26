@@ -7,40 +7,28 @@ from datetime import date
 MONTHS = {
     "jan": 1,
     "january": 1,
-    "January": 1,
     "feb": 2,
     "february": 2,
-    "February": 2,
     "mar": 3,
     "march": 3,
-    "March": 3,
     "apr": 4,
     "april": 4,
-    "April": 4,
-    "May": 5,
     "may": 5,
     "jun": 6,
     "june": 6,
-    "June": 6,
     "jul": 7,
     "july": 7,
-    "July": 7,
     "aug": 8,
     "august": 8,
-    "August": 8,
     "sep": 9,
     "sept": 9,
     "september": 9,
-    "September": 9,
     "oct": 10,
     "october": 10,
-    "October": 10,
     "nov": 11,
     "november": 11,
-    "November": 11,
     "dec": 12,
     "december": 12,
-    "December": 12,
 }
 
 ROLLING_PHRASES = (
@@ -62,13 +50,6 @@ EXPIRED_PHRASES = (
 )
 
 UNKNOWN_VALUES = {"", "unknown", "not specified", "not available", "n/a", "na", "none"}
-
-def normalize_deadline_text(text: str | None) -> str | None:
-    """Normalize recognized date text for comparison, without deciding inclusion.
-
-    Returns None for missing/rolling text AND for unparseable/invalid dates.
-    """
-
 
 
 def parse_deadline_text(text: str | None, reference_date: date | None = None) -> date | None:
@@ -129,15 +110,6 @@ def is_active_deadline(deadline: str | None, reference_date: date | None = None)
     if parsed is None:
         return False
     return parsed >= reference_date
-
-
-def normalize_deadline(deadline: str | None, reference_date: date | None = None) -> str:
-    """Format a recognized date as YYYY-MM-DD; otherwise retain text or unknown."""
-    parsed = parse_deadline_text(deadline, reference_date)
-    if parsed is not None:
-        return parsed.isoformat()
-    value = "" if deadline is None else str(deadline).strip()
-    return value or "unknown"
 
 
 def _normalize_year(value: str) -> int:

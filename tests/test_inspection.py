@@ -5,17 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from private_research_assistant.inspection import inspect_chunks, inspect_raw_documents, inspect_status
+from private_research_assistant.inspection import inspect_chunks, inspect_raw_documents
 
 
 class InspectionTests(unittest.TestCase):
-    def test_status_reports_missing_pipeline_stages(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            output = inspect_status(directory)
-        self.assertIn("Crawl: not found", output)
-        self.assertIn("Index: not found", output)
-        self.assertIn("Extraction: not found", output)
-
     def test_can_peek_at_raw_documents_and_chunks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

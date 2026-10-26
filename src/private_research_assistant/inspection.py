@@ -4,42 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .crawl import load_raw_documents, load_raw_manifest
+from .crawl import load_raw_documents
 from . import UserFacingError
-from .indexing import load_chunks, load_index_manifest
-from .paths import latest_index_manifest_path, latest_output_path, latest_raw_manifest_path
-
-
-def inspect_status(base_dir: str | Path | None = None) -> str:
-    lines = ["Private Research Assistant status"]
-    if not latest_raw_manifest_path(base_dir).exists():
-        lines.append("- Crawl: not found. Run `pra crawl`.")
-    else:
-        raw_manifest = load_raw_manifest(base_dir=base_dir)
-        lines.append(
-            f"- Crawl: run {raw_manifest['run_id']}, "
-            f"{raw_manifest['document_count']} documents, crawl date {raw_manifest.get('crawl_date', 'unknown')}."
-        )
-
-    if not latest_index_manifest_path(base_dir).exists():
-        lines.append("- Index: not found. Run `pra index`.")
-    else:
-        index_manifest = load_index_manifest(base_dir=base_dir)
-        lines.append(
-            f"- Index: {index_manifest['chunk_count']} chunks in collection "
-            f"{index_manifest['collection_name']}."
-        )
-
-    output_path = latest_output_path(base_dir)
-    if not output_path.exists():
-        lines.append("- Extraction: not found. Run `pra extract`.")
-    else:
-        payload = json.loads(output_path.read_text(encoding="utf-8"))
-        lines.append(
-            f"- Extraction: {payload.get('opportunity_count', 0)} supported opportunities "
-            f"for run {payload.get('run_id', 'unknown')}."
-        )
-    return "\n".join(lines)
+from .indexing import load_chunks
+from .paths import latest_output_path
 
 
 def inspect_raw_documents(

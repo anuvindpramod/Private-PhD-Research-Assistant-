@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from datetime import date
 
-from private_research_assistant.dates import is_active_deadline, normalize_deadline, parse_deadline_text
+from private_research_assistant.dates import is_active_deadline, parse_deadline_text
 
 
 class DeadlineTests(unittest.TestCase):
@@ -21,8 +21,10 @@ class DeadlineTests(unittest.TestCase):
         self.assertTrue(is_active_deadline("unknown", reference))
         self.assertFalse(is_active_deadline("02 Sep 2026", reference))
 
-    def test_normalizes_parseable_deadline(self) -> None:
-        self.assertEqual(normalize_deadline("30 Sep 2026", date(2026, 9, 3)), "2026-09-30")
+    def test_month_names_are_case_insensitive(self) -> None:
+        for month in ("September", "september", "SEPTEMBER", "Sep"):
+            with self.subTest(month=month):
+                self.assertEqual(parse_deadline_text(f"30 {month} 2026"), date(2026, 9, 30))
 
 
 if __name__ == "__main__":

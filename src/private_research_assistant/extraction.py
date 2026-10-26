@@ -111,7 +111,7 @@ def save_opportunities(
     *,
     crawl_date: str = "unknown",
 ) -> dict[str, str]:
-    """Write exports; always update JSON because inspection and eval read it."""
+    """Write exports; always update JSON because inspection reads it."""
     output_directory = output_run_dir(run_id, base_dir)
     output_directory.mkdir(parents=True, exist_ok=True)
     payload = {
